@@ -81,7 +81,7 @@ def store_the_file(response,server,port,path):
          
             else:
                 body = response[start_index+4:]
-                with open(path.split(".")[0]+'_copy.jpg', 'wb') as image_file:
+                with open(path, 'wb') as image_file:
                     image_file.write(body)
     else:
         print(f"{status_code}: {status_prase[int(status_code)]}")
