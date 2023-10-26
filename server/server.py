@@ -22,7 +22,7 @@ def parse_request(client_socket):
 # Function to send an HTTP response
 def send_response(client_socket, status_code, content_type, content):
     response = b""
-    response = str.encode(f"HTTP/1.1 {status_code}\r\n")
+    response = str.encode(f"HTTP/1.0 {status_code}\r\n")
     response += str.encode(f"Content-Type: {content_type}\r\n")
     response += str.encode(f"Content-Length: {len(content)}\r\n")
     response += b"\r\n"

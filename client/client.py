@@ -7,7 +7,17 @@ import os
 status_prase = {404:'Not found',501: 'Not Implemented'}
 
 # Function to send an HTTP GET request to a server
-def send_get_request(server, port, http_request):
+def send_get_request(server_ip,server_port,proxy_ip,proxy_port,path):
+
+    if not proxy_ip:
+        server = server_ip
+        port = server_port
+        http_request = f"GET /{path} HTTP/1.0\r\nHost: {server}:{port}\r\n\r\n"
+    else:
+        server = proxy_ip
+        port = proxy_port
+        http_request = f"GET http://{server_ip}:{server_port}/{path} HTTP/1.0\r\nHost: {server_ip}:{server_port}\r\n\r\n"
+
     # Create a socket
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
@@ -48,7 +58,7 @@ def parse_html_for_references(html_content):
             continue
     return resource_url
 
-def store_the_file(response,server,port,path):
+def store_the_file(response,server_ip,server_port,proxy_ip,proxy_port,path):
 
     start_index = response.find(b'\r\n\r\n')
     response_line = response[:start_index].decode().split("\r\n")[0]
@@ -69,18 +79,17 @@ def store_the_file(response,server,port,path):
                 html_content = body.decode('utf-8')
 
                 # Save the received HTML content to a file
-                with open(path.split(".")[0]+'_copy.html', 'w') as file:
+                with open(path, 'w') as file:
                     file.write(html_content)
 
                 # parse for references
                 references = parse_html_for_references(response)
                 for reference in references:
-                    http_request = f"GET /{reference} HTTP/1.0\r\nHost: {server}:{port}\r\n\r\n"
-                    response = send_get_request(server, port, http_request)
-                    store_the_file(response,server,port,reference)
+                    response = send_get_request(server_ip,server_port,proxy_ip,proxy_port,reference)
+                    store_the_file(response,server_ip,server_port,proxy_ip,proxy_port,reference)
          
             else:
-                body = response[start_index+4:]
+
                 with open(path, 'wb') as image_file:
                     image_file.write(body)
     else:
@@ -98,21 +107,13 @@ def main():
     path = input("Enter Path:")
 
     # Send an initial GET request to the web server or proxy
-    if not proxy_ip:
-        server = server_ip
-        port = server_port
-    else:
-        server = proxy_ip
-        port = proxy_port
-    
-    http_request = f"GET /{path} HTTP/1.0\r\nHost: {server}:{port}\r\n\r\n"
 
-    response = send_get_request(server, port, http_request)
-    store_the_file(response,server,port,path)
+    response = send_get_request(server_ip,server_port,proxy_ip,proxy_port,path)
+    store_the_file(response,server_ip,server_port,proxy_ip,proxy_port,path)
     print("files downloaded.")
     wants_to_open = input("Do you want to open the file in browser(Y/n):")
     if wants_to_open.lower() == 'y':
-        webbrowser.open('file://' + os.getcwd()+ '/' + path.split(".")[0] + '_copy.html')
+        webbrowser.open('file://' + os.getcwd()+ '/' + path)
     else:
         print("Thank You")
     
