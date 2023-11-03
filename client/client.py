@@ -3,20 +3,33 @@ from bs4 import BeautifulSoup
 import sys
 import webbrowser
 import os
+import re
 
 status_prase = {404:'Not found',501: 'Not Implemented'}
 
 # Function to send an HTTP GET request to a server
 def send_get_request(server_ip,server_port,proxy_ip,proxy_port,path):
 
+    pattern = r'[a-zA-Z!@#$%^&*()]'
+
+    if re.search(pattern, server_ip):
+        server_address = server_ip
+    else:
+        server_address = f"{server_ip}:{server_port}"
+
+    if path == '/':
+        request_path = '/'
+    else:
+        request_path = '/' + path
+
     if not proxy_ip:
         server = server_ip
         port = server_port
-        http_request = f"GET /{path} HTTP/1.0\r\nHost: {server}:{port}\r\n\r\n"
+        http_request = f"GET {request_path} HTTP/1.0\r\nHost: {server_address}\r\n\r\n"
     else:
         server = proxy_ip
         port = proxy_port
-        http_request = f"GET http://{server_ip}:{server_port}/{path} HTTP/1.0\r\nHost: {server_ip}:{server_port}\r\n\r\n"
+        http_request = f"GET http://{server_address}{request_path} HTTP/1.0\r\nHost: {server_address}\r\n\r\n"
 
     # Create a socket
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -44,7 +57,7 @@ def parse_html_for_references(html_content):
 
     resource_url=[]
     soup = BeautifulSoup(html_content, 'html.parser')
-    for tag in soup.find_all(['link', 'script', 'img','a','audio','video','iframe','object','embed']):
+    for tag in soup.find_all(['link', 'script', 'img','audio','video','iframe','object','embed']):
     # Check if the tag has a 'src' or 'href' attribute
         if 'src' in tag.attrs:
             resource_url.append(tag['src'])
@@ -73,17 +86,20 @@ def store_the_file(response,server_ip,server_port,proxy_ip,proxy_port,path):
 
         else:
             extension = path.split('.')[-1]
-            if extension.lower() in ["html", "htm", "xhtml"]:
+            if b'Content-Type: text/html' in response:
                 
                 # Decode the received bytes as UTF-8 (assuming the HTML content is in UTF-8 encoding)
                 html_content = body.decode('utf-8')
+
+                if path == '/':
+                    path = 'root.html'
 
                 # Save the received HTML content to a file
                 with open(path, 'w') as file:
                     file.write(html_content)
 
                 # parse for references
-                references = parse_html_for_references(response)
+                references = parse_html_for_references(html_content)
                 for reference in references:
                     response = send_get_request(server_ip,server_port,proxy_ip,proxy_port,reference)
                     store_the_file(response,server_ip,server_port,proxy_ip,proxy_port,reference)
@@ -111,6 +127,8 @@ def main():
     response = send_get_request(server_ip,server_port,proxy_ip,proxy_port,path)
     store_the_file(response,server_ip,server_port,proxy_ip,proxy_port,path)
     print("files downloaded.")
+    if path == '/':
+        path = 'root.html'
     wants_to_open = input("Do you want to open the file in browser(Y/n):")
     if wants_to_open.lower() == 'y':
         webbrowser.open('file://' + os.getcwd()+ '/' + path)

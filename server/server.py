@@ -25,6 +25,9 @@ def send_response(client_socket, status_code, content_type, content):
     response = str.encode(f"HTTP/1.0 {status_code}\r\n")
     response += str.encode(f"Content-Type: {content_type}\r\n")
     response += str.encode(f"Content-Length: {len(content)}\r\n")
+    response += str.encode(f"Cache-Control: no-store, no-cache, must-revalidate\r\n")
+    response += str.encode(f"Pragma: no-cache\r\n")
+    response += str.encode(f"Expires: 0\r\n")
     response += b"\r\n"
     response += content
     client_socket.send(response)

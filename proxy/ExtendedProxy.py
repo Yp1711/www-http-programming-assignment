@@ -73,7 +73,7 @@ def handle_client(client_socket):
             header = re.sub(b'Content-Length: \\d+', f'Content-Length: {len(content)}'.encode(), header)
         # Reconstruct the response with translated content and original headers
 
-        print(f"\ncontent:{content}\n")
+        # print(f"\ncontent:{content}\n")
         translated_response = header + content
 
         # Send the translated response back to the client
@@ -109,6 +109,7 @@ def translate_html_content(content):
     for element in soup.find_all(string=is_translatable):
             
             translated_text = translator.translate(element)
+            print(translated_text)
             element.replace_with(translated_text)
     
     body_tag = soup.body

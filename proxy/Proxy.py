@@ -11,16 +11,22 @@ def update_request(request, path):
     return modified_request
 
 def handle_client(client_socket):
+
+    
     request = client_socket.recv(4096)
+
+    print(f"\n\nRequest:{request}\n\n")
     
     # Extract the destination host and port from the HTTP request line's path
     destination_host, destination_port,path = extract_destination(request)
+
+    print(destination_host, destination_port,path)
     
     if destination_host:
 
         # Create a socket to connect to the destination server
         destination_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        destination_socket.settimeout(5) 
+        destination_socket.settimeout(100) 
         destination_socket.connect((destination_host.decode(), destination_port))
         modified_request = update_request(request, path)
         
@@ -28,11 +34,13 @@ def handle_client(client_socket):
        
         if b'Host: 127.0.0.1:12000' in request:
             modified_request = modified_request.split(b'\r\n')[0] + b'\r\nHost: ' + destination_host + b'\r\n\r\n'
+            
 
         print(f"HEADER:{modified_request}")
 
         # Forward the client's request to the destination server
         destination_socket.send(modified_request)
+
 
         while True:
             try:
@@ -51,8 +59,6 @@ def handle_client(client_socket):
         client_socket.close()
 
 
-        
-
 def extract_destination(request):
 
     first_line = request.split(b'\r\n')[0]
@@ -63,8 +69,6 @@ def extract_destination(request):
     else:
         temp = url[http_pos+3:]
     
-    port_pos = temp.find(b':')
-
     path = b""
     webserver_pos = temp.find(b'/')
     if webserver_pos == -1:
@@ -75,6 +79,7 @@ def extract_destination(request):
 
     webserver = b"" 
     port = b""
+    port_pos = temp.find(b':')
     if (port_pos==-1 or webserver_pos < port_pos): 
         # default port 
         port = int((b'80').decode()) 
