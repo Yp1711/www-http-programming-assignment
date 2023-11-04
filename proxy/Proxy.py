@@ -12,7 +12,6 @@ def update_request(request, path):
 
 def handle_client(client_socket):
 
-    
     request = client_socket.recv(4096)
 
     print(f"\n\nRequest:{request}\n\n")
@@ -26,16 +25,15 @@ def handle_client(client_socket):
 
         # Create a socket to connect to the destination server
         destination_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        destination_socket.settimeout(100) 
+        destination_socket.settimeout(50) 
         destination_socket.connect((destination_host.decode(), destination_port))
         modified_request = update_request(request, path)
         
         http_version = "1.1" if b'HTTP/1.1' in modified_request else "1.0"
-       
+
         if b'Host: 127.0.0.1:12000' in request:
             modified_request = modified_request.split(b'\r\n')[0] + b'\r\nHost: ' + destination_host + b'\r\n\r\n'
-            
-
+        
         print(f"HEADER:{modified_request}")
 
         # Forward the client's request to the destination server
@@ -46,7 +44,7 @@ def handle_client(client_socket):
             try:
                 # Receive data from the destination server and forward it to the client
                 destination_data = destination_socket.recv(4096)
-                print(f"\nDATA:{destination_data}\n")
+                # print(f"\nDATA:{destination_data}\n")
                 if len(destination_data) > 0:
                     client_socket.send(destination_data)
                 else:

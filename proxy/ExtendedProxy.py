@@ -4,7 +4,69 @@ import re
 from translate import Translator      
 from bs4 import BeautifulSoup
 
+user_requests={}
+
 translator = Translator(to_lang="hi")
+
+import csv
+from datetime import datetime
+
+def store_data(client_ip, server_ip):
+    # Get the current date
+    current_date = datetime.now()
+    
+    # Extract year, month, week, and day
+    year = current_date.year
+    month = current_date.month
+    week = current_date.isocalendar()[1]  # Get the ISO week number (1 to 52)
+    day = current_date.day
+
+    # Define the path to the CSV file
+    file_path = 'web_usage_data.csv'
+
+    # Writing data to the CSV file
+    with open(file_path, 'a', newline='') as file:
+        fieldnames = ['Client_IP', 'Server_IP', 'Date', 'Month', 'Week', 'Count']
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        
+        # Check if the file is empty, if so, write header row
+        if file.tell() == 0:
+            writer.writeheader()
+
+        # Read the existing data to check for the same client and server IP
+        existing_data = []
+        try:
+            with open(file_path, 'r', newline='') as read_file:
+                reader = csv.DictReader(read_file)
+                existing_data = list(reader)
+        except FileNotFoundError:
+            pass
+
+        found = False
+        for row in existing_data:
+            if row['Client_IP'] == client_ip and row['Server_IP'] == server_ip:
+                row['Count'] = int(row['Count']) + 1
+                found = True
+                break
+
+        # If the combination of client and server IP is not found, add a new row
+        if not found:
+            writer.writerow({
+                'Client_IP': client_ip,
+                'Server_IP': server_ip,
+                'Date': f'{year}-{month:02d}-{day:02d}',
+                'Month': month,
+                'Week': week,
+                'Count': 1  # Starting count for a new combination
+            })
+
+        # Write updated data back to the file
+        if existing_data:
+            with open(file_path, 'w', newline='') as write_file:
+                writer = csv.DictWriter(write_file, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(existing_data)
+
 
 def separate_headers(response_data):
     # Find the index of the first occurrence of '\r\n\r\n' which separates headers from content
@@ -25,13 +87,21 @@ def update_request(request, path):
     modified_request = re.sub(b'GET /(.*?) HTTP/1.0', b'GET ' + path + b' HTTP/1.0', modified_request)
     return modified_request
 
-def handle_client(client_socket):
+def handle_client(client_socket, client_address):
 
     request = client_socket.recv(4096)
     print(request)
     print("\n")
     # Extract the destination host and port from the HTTP request line's path
     destination_host, destination_port,path = extract_destination(request)
+    store_data(client_address,destination_host.decode())
+    # if client_address not in user_requests:
+    #     user_requests[client_address] = {}  # Initialize a dictionary for each client's IP address
+
+    # if destination_host.decode() not in user_requests[client_address]:
+    #     user_requests[client_address][destination_host.decode()] =  1
+    # else:
+    #     user_requests[client_address][destination_host.decode()] += 1
     
     if destination_host:
 
@@ -56,7 +126,7 @@ def handle_client(client_socket):
             try:
                 # Receive data from the destination server and forward it to the client
                 destination_data = destination_socket.recv(4096)
-                print(f"Destination Data:{destination_data}\n")
+                # print(f"Destination Data:{destination_data}\n")
                 if not destination_data:
                     break
                 response += destination_data
@@ -79,7 +149,7 @@ def handle_client(client_socket):
         # Send the translated response back to the client
         client_socket.sendall(translated_response)
 
-
+    # print(user_requests)
     if http_version == "1.0":
         client_socket.close()
 
@@ -169,8 +239,9 @@ def main():
         client_socket, addr = server.accept()
         print(f"[*] Accepted connection from {addr[0]}:{addr[1]}")
 
-        client_handler = threading.Thread(target=handle_client, args=(client_socket,))
+        client_handler = threading.Thread(target=handle_client, args=(client_socket,addr[0],))
         client_handler.start()
+        
 
 if __name__ == '__main__':
     main()

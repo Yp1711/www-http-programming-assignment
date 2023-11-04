@@ -133,7 +133,16 @@ def main():
     if wants_to_open.lower() == 'y':
         webbrowser.open('file://' + os.getcwd()+ '/' + path)
     else:
-        print("Thank You")
+        wants_to_read = input("Do you want to print the recieved raw content(Y/n):")
+        if wants_to_read.lower() == 'y':
+            if path.split('.')[-1].lower() in ['html','htm','xhtml']:
+                with open(path, 'r', encoding='utf-8') as html_file:
+                    html_content = html_file.read()
+                    print(html_content)
+            else:
+                print("Its not an HTML File. Thank You")
+        else:
+            print("Thank You")
     
 if __name__ == "__main__":
     main()
