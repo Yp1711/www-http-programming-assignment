@@ -25,7 +25,7 @@ def handle_client(client_socket):
 
         # Create a socket to connect to the destination server
         destination_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        destination_socket.settimeout(50) 
+        destination_socket.settimeout(5) 
         destination_socket.connect((destination_host.decode(), destination_port))
         modified_request = update_request(request, path)
         
@@ -44,7 +44,7 @@ def handle_client(client_socket):
             try:
                 # Receive data from the destination server and forward it to the client
                 destination_data = destination_socket.recv(4096)
-                # print(f"\nDATA:{destination_data}\n")
+                print(f"\nDATA:{destination_data}\n")
                 if len(destination_data) > 0:
                     client_socket.send(destination_data)
                 else:
